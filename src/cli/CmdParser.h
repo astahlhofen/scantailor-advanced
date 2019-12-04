@@ -22,10 +22,13 @@
 #define SCANTAILOR_CLI_CMDPARSER_H_
 
 #include <QCommandLineParser>
+#include <QDir>
+#include <QFileInfo>
 #include "core/logger/LogLevel.h"
+#include "core/logger/Logger.h"
 
 struct CmdOptions {
-  LogLevel logLevel;
+  std::vector<QFileInfo> inputFiles;
 };
 
 enum ParserResult { OPTIONS_OK, OPTIONS_ERROR, OPTIONS_VERSION_REQUESTED, OPTIONS_HELP_REQUESTED };
@@ -46,10 +49,20 @@ ParserResult parseCommandLine(QCommandLineParser& _parser, CmdOptions* _options,
   const QCommandLineOption versionOption{"version", "The version."};
   _parser.addOption(versionOption);
 
+  _parser.addPositionalArgument("input_images", "The images to modify using scan tailor", "[files...]");
+
   /* Parse command line options */
   if (!_parser.parse(QCoreApplication::arguments())) {
     *_errorMessage = _parser.errorText();
     return OPTIONS_ERROR;
+  }
+
+  // Parse the log level at the beginning so that we can use it later in parseCommandLine().
+  Logger::instance()->setLogLevel(LogLevel::WARNING);
+  if (_parser.isSet(logLevelInfo)) {
+    Logger::instance()->setLogLevel(LogLevel::INFO);
+  } else if (_parser.isSet(logLevelVerbose)) {
+    Logger::instance()->setLogLevel(LogLevel::DEBUG);
   }
 
   if (_parser.isSet(helpOption)) {
@@ -60,11 +73,35 @@ ParserResult parseCommandLine(QCommandLineParser& _parser, CmdOptions* _options,
     return OPTIONS_VERSION_REQUESTED;
   }
 
-  _options->logLevel = LogLevel::WARNING;
-  if (_parser.isSet(logLevelInfo)) {
-    _options->logLevel = LogLevel::INFO;
-  } else if (_parser.isSet(logLevelVerbose)) {
-    _options->logLevel = LogLevel::DEBUG;
+  QStringList files = _parser.positionalArguments();
+  if (files.isEmpty()) {
+    *_errorMessage = "No input files specified";
+    return OPTIONS_ERROR;
+  }
+  std::for_each(files.begin(), files.end(), [&](const QString& _file) {
+    const QString path = QDir::cleanPath(_file);
+    QFileInfo fileInfo{path};
+
+    // Check if the specified input file is a directory.
+    if (fileInfo.isDir()) {
+      *_errorMessage = "\n  - The specified input file '" + path + "' is a directory";
+      return;
+    }
+
+    // Check if the specified input file exists.
+    if (!fileInfo.exists()) {
+      *_errorMessage = "\n  - The specified input file '" + path + "' does not exist";
+      return;
+    }
+
+    // Add the input file to the list of files to process.
+    Logger::debug() << "parseCommandLine(): add input file '" << fileInfo.absoluteFilePath().toStdString() << "'"
+                    << Logger::eol;
+    _options->inputFiles.push_back(fileInfo);
+  });
+
+  if (!_errorMessage->isEmpty()) {
+    return OPTIONS_ERROR;
   }
 
   return OPTIONS_OK;
