@@ -185,6 +185,9 @@ if (WIN32)
 
   set(Boost_USE_STATIC_LIBS ON)
 endif()
+# TODO(astahlhofen): Remove this if this is fixed in boost release:
+# https://stackoverflow.com/questions/58081084/target-boostlibrary-already-has-an-imported-location-link-errors#answer-58085634
+set(Boost_NO_BOOST_CMAKE On) 
 set(Boost_USE_MULTITHREADED ON)
 
 find_package(Boost 1.60 COMPONENTS unit_test_framework prg_exec_monitor REQUIRED)
