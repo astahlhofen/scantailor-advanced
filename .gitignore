@@ -3,5 +3,8 @@
 .project
 .settings
 
+# macos stuff
+.DS_Store
+
 # CMake
 build
