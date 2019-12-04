@@ -6,3 +6,7 @@ add_subdirectory(imageproc)
 add_subdirectory(dewarping)
 add_subdirectory(core)
 add_subdirectory(app)
+
+if (BUILD_CLI)
+  add_subdirectory(cli)
+endif()
