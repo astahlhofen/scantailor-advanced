@@ -1,0 +1,7 @@
+# eclipse stuff
+.cproject
+.project
+.settings
+
+# CMake
+build
