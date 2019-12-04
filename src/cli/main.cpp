@@ -12,11 +12,12 @@
 #include "core/SmartFilenameOrdering.h"
 #include "core/logger/Logger.h"
 #include "core/logger/writer/StandardMessageWriter.h"
+#include "version.h"
 
 int main(int _argc, char** _argv) {
   // Initialize the Qt application.
   QCoreApplication app(_argc, _argv);
-  QCoreApplication::setApplicationVersion(QT_VERSION_STR);
+  QCoreApplication::setApplicationVersion(VERSION);
   QCoreApplication::setApplicationName("scantailor-cli");
 
   // Initialize the command line parser.
