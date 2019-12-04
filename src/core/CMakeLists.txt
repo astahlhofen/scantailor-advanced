@@ -126,6 +126,7 @@ set_target_properties(core PROPERTIES AUTOUIC ON)
 translation_sources(scantailor ${common_sources} ${common_ui_files})
 
 add_subdirectory(interaction)
+add_subdirectory(logger)
 add_subdirectory(zones)
 
 if (BUILD_TESTS)
