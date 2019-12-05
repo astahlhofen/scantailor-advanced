@@ -14,16 +14,6 @@
 class AbstractMessageWriter;
 
 /*!
- * this preprocessor macro is provided for convenience:
- * it can be used to write LM("log-message..") instead of
- * the log-message, it will provide additional information
- * about the caller of the logger for more detailed messages
- */
-#ifndef LM
-#define LM(x...) __FILE__, __FUNCTION__, __LINE__, x
-#endif
-
-/*!
  * \brief The EolType struct end-of-line helper for logging
  */
 struct EolType {};
@@ -141,23 +131,5 @@ LogInterface& LogInterface::operator<<(T _val) {
   mStream << _val;
   return *this;
 }
-
-#ifndef lprintf
-#define lprintf(x...)                        \
-  {                                          \
-    char buf[255];                           \
-    snprintf(buf, sizeof(buf), x);           \
-    Logger::verbose() << buf << Logger::eol; \
-  }
-#endif
-
-#ifndef lprint
-#define lprint(t, x...)            \
-  {                                \
-    char buf[255];                 \
-    snprintf(buf, sizeof(buf), x); \
-    Logger::write(buf, t);         \
-  }
-#endif
 
 #endif  // SCANTAILOR_CORE_LOGGER_LOGGER_H_
