@@ -1,22 +1,6 @@
-/*
- * CmdParser.h
- *
- *  Created on: 4 Dec 2019
- *  Copyright (C) 2019 Andreas Stahlhofen <astahlhofen@uni-koblenz.de>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2019  Andreas Stahlhofen <andreas.stahlhofen@gmail.com>
+// Use of this source code is governed by the GNU GPLv3 license that can be found in the LICENSE file.
+
 
 #ifndef SCANTAILOR_CLI_CMDPARSER_H_
 #define SCANTAILOR_CLI_CMDPARSER_H_
@@ -27,6 +11,7 @@
 #include "core/logger/LogLevel.h"
 #include "core/logger/Logger.h"
 
+
 struct CmdOptions {
   std::vector<QFileInfo> inputFiles;
   QDir outputDirectory;
@@ -35,11 +20,11 @@ struct CmdOptions {
 enum ParserResult { OPTIONS_OK, OPTIONS_ERROR, OPTIONS_VERSION_REQUESTED, OPTIONS_HELP_REQUESTED };
 
 ParserResult parseCommandLine(QCommandLineParser& _parser, CmdOptions* _options, QString* _errorMessage) {
+  _parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
+
   /* Add command line options. */
   QCommandLineOption logLevelInfoOpt{{"v", "verbose"}, "Tell me what you are doing."};
   QCommandLineOption logLevelVerboseOpt{{"d", "debug"}, "Set the verbosity level to max"};
-  logLevelVerboseOpt.setFlags(logLevelVerboseOpt.flags() | QCommandLineOption::ShortOptionStyle);
-
   QCommandLineOption outputDirOpt{{"o", "output"}, "The output directory.", "output_dir"};
 
   _parser.addOptions({logLevelInfoOpt, logLevelVerboseOpt, outputDirOpt});
