@@ -235,11 +235,16 @@ int CmdRunner::run() {
     loadTask->process();
   }
 
-  QString projectOutDir = "project/project.xml";
-  OutputFileNameGenerator projectOutFileNameGen{make_intrusive<FileNameDisambiguator>(), projectOutDir,
-                                                Qt::LayoutDirection::LeftToRight};
-  ::cli::ProjectWriter writer(pages, projectOutFileNameGen);
-  writer.write("project.xml", tasks);
+  if (options.generateOutputProject) {
+    const QString outDir = options.outputDirectory.absolutePath();
+    const QString projectFilePath = QDir::cleanPath(outDir + "/project.ScanTailor");
+    Logger::debug() << "CmdRunner::run(): Generate output project file '" << projectFilePath.toStdString() << "'"
+                    << Logger::eol;
+    OutputFileNameGenerator outFileNameGen{make_intrusive<FileNameDisambiguator>(), outDir,
+                                           Qt::LayoutDirection::LeftToRight};
+    ::cli::ProjectWriter writer(pages, outFileNameGen);
+    writer.write(projectFilePath, tasks);
+  }
 
   return 0;
 }

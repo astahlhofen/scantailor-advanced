@@ -15,6 +15,7 @@
 struct CmdOptions {
   std::vector<QFileInfo> inputFiles;
   QDir outputDirectory;
+  bool generateOutputProject;
 };
 
 enum ParserResult { OPTIONS_OK, OPTIONS_ERROR, OPTIONS_VERSION_REQUESTED, OPTIONS_HELP_REQUESTED };
@@ -26,8 +27,11 @@ ParserResult parseCommandLine(QCommandLineParser& _parser, CmdOptions* _options,
   QCommandLineOption logLevelInfoOpt{{"v", "verbose"}, "Tell me what you are doing."};
   QCommandLineOption logLevelVerboseOpt{{"d", "debug"}, "Set the verbosity level to max"};
   QCommandLineOption outputDirOpt{{"o", "output"}, "The output directory.", "output_dir"};
+  QCommandLineOption generateOutputProjectOpt{
+      {"gp", "generate-project"},
+      "Generate output project file inside the output directory. By default, no project file is generated"};
 
-  _parser.addOptions({logLevelInfoOpt, logLevelVerboseOpt, outputDirOpt});
+  _parser.addOptions({logLevelInfoOpt, logLevelVerboseOpt, outputDirOpt, generateOutputProjectOpt});
 
   const QCommandLineOption helpOpt = _parser.addHelpOption();
   const QCommandLineOption versionOpt{"version", "The version."};
@@ -83,6 +87,8 @@ ParserResult parseCommandLine(QCommandLineParser& _parser, CmdOptions* _options,
   }
   _options->outputDirectory = outputDir;
 
+  // Check if an output project should be generated.
+  _options->generateOutputProject = _parser.isSet(generateOutputProjectOpt);
 
   // Parse input files as positional arguments.
   QStringList files = _parser.positionalArguments();
