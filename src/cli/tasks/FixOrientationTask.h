@@ -9,18 +9,18 @@
 #include "core/filters/fix_orientation/Settings.h"
 #include "foundation/TaskStatus.h"
 #include "foundation/intrusive_ptr.h"
-#include "foundation/ref_countable.h"
+#include "tasks/AbstractTask.h"
 #include "tasks/PageSplitTask.h"
 
-namespace fix_orientation {
 namespace cli {
+namespace fix_orientation {
 
-class Task : public ref_countable {
+class Task : public AbstractTask {
  public:
   Task(const PageId& pageId,
-       intrusive_ptr<Settings> settings,
+       intrusive_ptr<::fix_orientation::Settings> settings,
        intrusive_ptr<ImageSettings> imageSettings,
-       intrusive_ptr<page_split::cli::Task> nextTask,
+       intrusive_ptr<::cli::page_split::Task> nextTask,
        bool batchProcessing);
   ~Task() override;
 
@@ -28,16 +28,29 @@ class Task : public ref_countable {
 
   void updateFilterData(FilterData& data);
 
+  // ##############################################################################################
+  // # AbstractTask implementation
+  // ##############################################################################################
+ public:
+  QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
+
  private:
-  intrusive_ptr<Settings> m_settings;
+  void writeParams(QDomDocument& doc, QDomElement& filterEl, const ImageId& imageId, int numericId) const;
+
+  void saveImageSettings(const ProjectWriter& writer, QDomDocument& doc, QDomElement& filterEl) const;
+
+  void writeImageParams(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const;
+
+ private:
+  intrusive_ptr<::fix_orientation::Settings> m_settings;
   intrusive_ptr<ImageSettings> m_imageSettings;
-  intrusive_ptr<page_split::cli::Task> m_nextTask;
+  intrusive_ptr<::cli::page_split::Task> m_nextTask;
   PageId m_pageId;
   ImageId m_imageId;
   bool m_batchProcessing;
 };
 
-}  // namespace cli
 }  // namespace fix_orientation
+}  // namespace cli
 
 #endif  // SCANTAILOR_CLI_TASKS_FIXORIENTATIONTASK_H_

@@ -20,6 +20,7 @@
 
 #include "OutputTask.h"
 #include <QDir>
+#include "cli/ProjectWriter.h"
 #include "core/DebugImagesImpl.h"
 #include "core/ImageLoader.h"
 #include "core/TiffWriter.h"
@@ -35,10 +36,10 @@
 #include "dewarping/DistortionModel.h"
 #include "imageproc/BinaryImage.h"
 
-namespace output {
 namespace cli {
+namespace output {
 
-Task::Task(intrusive_ptr<Settings> settings,
+Task::Task(intrusive_ptr<::output::Settings> settings,
            const PageId& pageId,
            const OutputFileNameGenerator& outFileNameGen,
            bool batch,
@@ -61,18 +62,18 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
   Logger::debug() << "Task::process(): Generate the output file for image with id " << m_pageId.imageId().page() << " ("
                   << m_pageId.imageId().filePath().toStdString() << ")" << Logger::eol;
 
-  Params params = m_settings->getParams(m_pageId);
+  ::output::Params params = m_settings->getParams(m_pageId);
 
-  RenderParams renderParams(params.colorParams(), params.splittingOptions());
+  ::output::RenderParams renderParams(params.colorParams(), params.splittingOptions());
   const QString outFilePath(m_outFileNameGen.filePathFor(m_pageId));
   const QFileInfo outFileInfo(outFilePath);
 
   ImageTransformation newXform(data.xform());
   newXform.postScaleToDpi(params.outputDpi());
 
-  const QString foregroundDir(Utils::foregroundDir(m_outFileNameGen.outDir()));
-  const QString backgroundDir(Utils::backgroundDir(m_outFileNameGen.outDir()));
-  const QString originalBackgroundDir(Utils::originalBackgroundDir(m_outFileNameGen.outDir()));
+  const QString foregroundDir(::output::Utils::foregroundDir(m_outFileNameGen.outDir()));
+  const QString backgroundDir(::output::Utils::backgroundDir(m_outFileNameGen.outDir()));
+  const QString originalBackgroundDir(::output::Utils::originalBackgroundDir(m_outFileNameGen.outDir()));
   const QString foregroundFilePath(QDir(foregroundDir).absoluteFilePath(outFileInfo.fileName()));
   const QString backgroundFilePath(QDir(backgroundDir).absoluteFilePath(outFileInfo.fileName()));
   const QString originalBackgroundFilePath(QDir(originalBackgroundDir).absoluteFilePath(outFileInfo.fileName()));
@@ -80,44 +81,44 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
   const QFileInfo backgroundFileInfo(backgroundFilePath);
   const QFileInfo originalBackgroundFileInfo(originalBackgroundFilePath);
 
-  const QString automaskDir(Utils::automaskDir(m_outFileNameGen.outDir()));
+  const QString automaskDir(::output::Utils::automaskDir(m_outFileNameGen.outDir()));
   const QString automaskFilePath(QDir(automaskDir).absoluteFilePath(outFileInfo.fileName()));
   QFileInfo automaskFileInfo(automaskFilePath);
 
-  const QString specklesDir(Utils::specklesDir(m_outFileNameGen.outDir()));
+  const QString specklesDir(::output::Utils::specklesDir(m_outFileNameGen.outDir()));
   const QString specklesFilePath(QDir(specklesDir).absoluteFilePath(outFileInfo.fileName()));
   QFileInfo specklesFileInfo(specklesFilePath);
 
   const bool needPictureEditor = renderParams.mixedOutput() && !m_batchProcessing;
   const bool need_speckles_image
-      = params.despeckleLevel() != DESPECKLE_OFF && renderParams.needBinarization() && !m_batchProcessing;
+      = params.despeckleLevel() != ::output::DESPECKLE_OFF && renderParams.needBinarization() && !m_batchProcessing;
 
   {
-    std::unique_ptr<OutputParams> storedOutputParams(m_settings->getOutputParams(m_pageId));
+    std::unique_ptr<::output::OutputParams> storedOutputParams(m_settings->getOutputParams(m_pageId));
     if (storedOutputParams != nullptr) {
       if (storedOutputParams->outputImageParams().getPictureShapeOptions() != params.pictureShapeOptions()) {
         // if picture shape options changed, reset auto picture zones
-        OutputProcessingParams outputProcessingParams = m_settings->getOutputProcessingParams(m_pageId);
+        ::output::OutputProcessingParams outputProcessingParams = m_settings->getOutputProcessingParams(m_pageId);
         outputProcessingParams.setAutoZonesFound(false);
         m_settings->setOutputProcessingParams(m_pageId, outputProcessingParams);
       }
     }
   }
 
-  const OutputGenerator generator(newXform, contentRectPhys);
+  const ::output::OutputGenerator generator(newXform, contentRectPhys);
 
-  OutputImageParams newOutputImageParams(generator.outputImageSize(), generator.outputContentRect(), newXform,
-                                         params.outputDpi(), params.colorParams(), params.splittingOptions(),
-                                         params.dewarpingOptions(), params.distortionModel(), params.depthPerception(),
-                                         params.despeckleLevel(), params.pictureShapeOptions(),
-                                         m_settings->getOutputProcessingParams(m_pageId), params.isBlackOnWhite());
+  ::output::OutputImageParams newOutputImageParams(
+      generator.outputImageSize(), generator.outputContentRect(), newXform, params.outputDpi(), params.colorParams(),
+      params.splittingOptions(), params.dewarpingOptions(), params.distortionModel(), params.depthPerception(),
+      params.despeckleLevel(), params.pictureShapeOptions(), m_settings->getOutputProcessingParams(m_pageId),
+      params.isBlackOnWhite());
 
   ZoneSet newPictureZones(m_settings->pictureZonesForPage(m_pageId));
   const ZoneSet newFillZones(m_settings->fillZonesForPage(m_pageId));
 
   bool needReprocess = false;
   do {  // Just to be able to break from it.
-    std::unique_ptr<OutputParams> storedOutputParams(m_settings->getOutputParams(m_pageId));
+    std::unique_ptr<::output::OutputParams> storedOutputParams(m_settings->getOutputParams(m_pageId));
 
     if (!storedOutputParams) {
       needReprocess = true;
@@ -129,12 +130,12 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
       break;
     }
 
-    if (!PictureZoneComparator::equal(storedOutputParams->pictureZones(), newPictureZones)) {
+    if (!::output::PictureZoneComparator::equal(storedOutputParams->pictureZones(), newPictureZones)) {
       needReprocess = true;
       break;
     }
 
-    if (!FillZoneComparator::equal(storedOutputParams->fillZones(), newFillZones)) {
+    if (!::output::FillZoneComparator::equal(storedOutputParams->fillZones(), newFillZones)) {
       needReprocess = true;
       break;
     }
@@ -145,7 +146,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
         break;
       }
 
-      if (!storedOutputParams->outputFileParams().matches(OutputFileParams(outFileInfo))) {
+      if (!storedOutputParams->outputFileParams().matches(::output::OutputFileParams(outFileInfo))) {
         needReprocess = true;
         break;
       }
@@ -154,8 +155,8 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
         needReprocess = true;
         break;
       }
-      if (!(storedOutputParams->foregroundFileParams().matches(OutputFileParams(foregroundFileInfo)))
-          || !(storedOutputParams->backgroundFileParams().matches(OutputFileParams(backgroundFileInfo)))) {
+      if (!(storedOutputParams->foregroundFileParams().matches(::output::OutputFileParams(foregroundFileInfo)))
+          || !(storedOutputParams->backgroundFileParams().matches(::output::OutputFileParams(backgroundFileInfo)))) {
         needReprocess = true;
         break;
       }
@@ -166,7 +167,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
           break;
         }
         if (!(storedOutputParams->originalBackgroundFileParams().matches(
-                OutputFileParams(originalBackgroundFileInfo)))) {
+                ::output::OutputFileParams(originalBackgroundFileInfo)))) {
           needReprocess = true;
           break;
         }
@@ -179,7 +180,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
         break;
       }
 
-      if (!storedOutputParams->automaskFileParams().matches(OutputFileParams(automaskFileInfo))) {
+      if (!storedOutputParams->automaskFileParams().matches(::output::OutputFileParams(automaskFileInfo))) {
         needReprocess = true;
         break;
       }
@@ -190,7 +191,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
         needReprocess = true;
         break;
       }
-      if (!storedOutputParams->specklesFileParams().matches(OutputFileParams(specklesFileInfo))) {
+      if (!storedOutputParams->specklesFileParams().matches(::output::OutputFileParams(specklesFileInfo))) {
         needReprocess = true;
         break;
       }
@@ -207,7 +208,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
       outImg = ImageLoader::load(outFile, 0);
     }
     if (outImg.isNull() && renderParams.splitOutput()) {
-      OutputImageBuilder imageBuilder;
+      ::output::OutputImageBuilder imageBuilder;
       QFile foregroundFile(foregroundFilePath);
       if (foregroundFile.open(QIODevice::ReadOnly)) {
         imageBuilder.setForegroundImage(ImageLoader::load(foregroundFile, 0));
@@ -250,7 +251,8 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
     // for visualization purposes, but also for re-doing despeckling at
     // different levels without going through the whole output generation process.
     const bool writeAutomask = renderParams.mixedOutput();
-    const bool writeSpecklesFile = params.despeckleLevel() != DESPECKLE_OFF && renderParams.needBinarization();
+    const bool writeSpecklesFile
+        = params.despeckleLevel() != ::output::DESPECKLE_OFF && renderParams.needBinarization();
 
     automaskImg = imageproc::BinaryImage();
     specklesImg = imageproc::BinaryImage();
@@ -258,21 +260,21 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
     // OutputGenerator will write a new distortion model
     // there, if dewarping mode is AUTO.
     dewarping::DistortionModel distortionModel;
-    if (params.dewarpingOptions().dewarpingMode() == MANUAL) {
+    if (params.dewarpingOptions().dewarpingMode() == ::output::MANUAL) {
       distortionModel = params.distortionModel();
     }
 
     bool invalidateParams = false;
     {
-      std::unique_ptr<OutputImage> outputImage
+      std::unique_ptr<::output::OutputImage> outputImage
           = generator.process(status, data, newPictureZones, newFillZones, distortionModel, params.depthPerception(),
                               writeAutomask ? &automaskImg : nullptr, writeSpecklesFile ? &specklesImg : nullptr,
                               m_dbg.get(), m_pageId, m_settings);
 
       params = m_settings->getParams(m_pageId);
 
-      if (((params.dewarpingOptions().dewarpingMode() == AUTO)
-           || (params.dewarpingOptions().dewarpingMode() == MARGINAL))
+      if (((params.dewarpingOptions().dewarpingMode() == ::output::AUTO)
+           || (params.dewarpingOptions().dewarpingMode() == ::output::MARGINAL))
           && distortionModel.isValid()) {
         // A new distortion model was generated.
         // We need to save it to be able to modify it manually.
@@ -286,7 +288,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
       newOutputImageParams.setOutputProcessingParams(m_settings->getOutputProcessingParams(m_pageId));
 
       if (renderParams.splitOutput()) {
-        auto* outputImageWithForeground = dynamic_cast<OutputImageWithForeground*>(outputImage.get());
+        auto* outputImageWithForeground = dynamic_cast<::output::OutputImageWithForeground*>(outputImage.get());
 
         QDir().mkdir(foregroundDir);
         QDir().mkdir(backgroundDir);
@@ -296,7 +298,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
         }
 
         if (renderParams.originalBackground()) {
-          auto* outputImageWithOrigBg = dynamic_cast<OutputImageWithOriginalBackground*>(outputImage.get());
+          auto* outputImageWithOrigBg = dynamic_cast<::output::OutputImageWithOriginalBackground*>(outputImage.get());
 
           QDir().mkdir(originalBackgroundDir);
           if (!TiffWriter::writeImage(originalBackgroundFilePath,
@@ -355,15 +357,17 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
     } else {
       // Note that we can't reuse *_file_info objects
       // as we've just overwritten those files.
-      const OutputParams outParams(
-          newOutputImageParams, OutputFileParams(QFileInfo(outFilePath)),
-          renderParams.splitOutput() ? OutputFileParams(QFileInfo(foregroundFilePath)) : OutputFileParams(),
-          renderParams.splitOutput() ? OutputFileParams(QFileInfo(backgroundFilePath)) : OutputFileParams(),
-          renderParams.originalBackground() ? OutputFileParams(QFileInfo(originalBackgroundFilePath))
-                                            : OutputFileParams(),
-          writeAutomask ? OutputFileParams(QFileInfo(automaskFilePath)) : OutputFileParams(),
-          writeSpecklesFile ? OutputFileParams(QFileInfo(specklesFilePath)) : OutputFileParams(), newPictureZones,
-          newFillZones);
+      const ::output::OutputParams outParams(
+          newOutputImageParams, ::output::OutputFileParams(QFileInfo(outFilePath)),
+          renderParams.splitOutput() ? ::output::OutputFileParams(QFileInfo(foregroundFilePath))
+                                     : ::output::OutputFileParams(),
+          renderParams.splitOutput() ? ::output::OutputFileParams(QFileInfo(backgroundFilePath))
+                                     : ::output::OutputFileParams(),
+          renderParams.originalBackground() ? ::output::OutputFileParams(QFileInfo(originalBackgroundFilePath))
+                                            : ::output::OutputFileParams(),
+          writeAutomask ? ::output::OutputFileParams(QFileInfo(automaskFilePath)) : ::output::OutputFileParams(),
+          writeSpecklesFile ? ::output::OutputFileParams(QFileInfo(specklesFilePath)) : ::output::OutputFileParams(),
+          newPictureZones, newFillZones);
 
       m_settings->setOutputParams(m_pageId, outParams);
     }
@@ -384,5 +388,33 @@ void Task::deleteMutuallyExclusiveOutputFiles() {
   }
 }
 
-}  // namespace cli
+QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
+  QDomElement filterEl(doc.createElement("output"));
+
+  writer.enumPages(
+      [&](const PageId& pageId, int numericId) { this->writePageSettings(doc, filterEl, pageId, numericId); });
+
+  return filterEl;
+}
+
+void Task::writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {
+  const ::output::Params params(m_settings->getParams(pageId));
+
+  QDomElement pageEl(doc.createElement("page"));
+  pageEl.setAttribute("id", numericId);
+
+  pageEl.appendChild(m_settings->pictureZonesForPage(pageId).toXml(doc, "zones"));
+  pageEl.appendChild(m_settings->fillZonesForPage(pageId).toXml(doc, "fill-zones"));
+  pageEl.appendChild(params.toXml(doc, "params"));
+  pageEl.appendChild(m_settings->getOutputProcessingParams(pageId).toXml(doc, "processing-params"));
+
+  std::unique_ptr<::output::OutputParams> outputParams(m_settings->getOutputParams(pageId));
+  if (outputParams) {
+    pageEl.appendChild(outputParams->toXml(doc, "output-params"));
+  }
+
+  filterEl.appendChild(pageEl);
+}
+
 }  // namespace output
+}  // namespace cli

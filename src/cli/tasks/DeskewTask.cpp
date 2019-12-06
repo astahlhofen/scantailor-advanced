@@ -3,6 +3,7 @@
 
 
 #include "DeskewTask.h"
+#include <memory>
 #include "core/BlackOnWhiteEstimator.h"
 #include "core/DebugImagesImpl.h"
 #include "core/filters/deskew/Params.h"
@@ -21,12 +22,12 @@
 #include "imageproc/SkewFinder.h"
 #include "imageproc/UpscaleIntegerTimes.h"
 
-namespace deskew {
 namespace cli {
+namespace deskew {
 
-Task::Task(intrusive_ptr<Settings> settings,
+Task::Task(intrusive_ptr<::deskew::Settings> settings,
            intrusive_ptr<ImageSettings> imageSettings,
-           intrusive_ptr<select_content::cli::Task> nextTask,
+           intrusive_ptr<::cli::select_content::Task> nextTask,
            const PageId& pageId,
            bool batchProcessing,
            bool debug)
@@ -48,9 +49,9 @@ bool Task::process(const TaskStatus& status, FilterData data) {
   Logger::debug() << "Task::process(): Deskewing the text of image with id " << m_pageId.imageId().page() << " ("
                   << m_pageId.imageId().filePath().toStdString() << ")" << Logger::eol;
 
-  const Dependencies deps(data.xform().preCropArea(), data.xform().preRotation());
+  const ::deskew::Dependencies deps(data.xform().preCropArea(), data.xform().preRotation());
 
-  std::unique_ptr<Params> params(m_settings->getPageParams(m_pageId));
+  std::unique_ptr<::deskew::Params> params(m_settings->getPageParams(m_pageId));
   updateFilterData(status, data, (!params || !deps.matches(params->dependencies())));
 
   //  if (params) {
@@ -104,7 +105,7 @@ bool Task::process(const TaskStatus& status, FilterData data) {
         skewAngle = -skew.angle();
       }
 
-      Params newParams(skewAngle, deps, MODE_AUTO);
+      ::deskew::Params newParams(skewAngle, deps, MODE_AUTO);
       m_settings->setPageParams(m_pageId, newParams);
 
       status.throwIfCancelled();
@@ -195,5 +196,51 @@ void Task::updateFilterData(const TaskStatus& status, FilterData& data, bool nee
   }
 }
 
-}  // namespace cli
+QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
+  QDomElement filterEl(doc.createElement("deskew"));
+
+  writer.enumPages(
+      [&](const PageId& pageId, const int numericId) { this->writeParams(doc, filterEl, pageId, numericId); });
+
+  saveImageSettings(writer, doc, filterEl);
+
+  return filterEl;
+}
+
+void Task::saveImageSettings(const ProjectWriter& writer, QDomDocument& doc, QDomElement& filterEl) const {
+  QDomElement imageSettingsEl(doc.createElement("image-settings"));
+  writer.enumPages([&](const PageId& pageId, const int numericId) {
+    this->writeImageParams(doc, imageSettingsEl, pageId, numericId);
+  });
+
+  filterEl.appendChild(imageSettingsEl);
+}
+
+void Task::writeParams(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {
+  const std::unique_ptr<::deskew::Params> params(m_settings->getPageParams(pageId));
+  if (!params) {
+    return;
+  }
+
+  QDomElement pageEl(doc.createElement("page"));
+  pageEl.setAttribute("id", numericId);
+  pageEl.appendChild(params->toXml(doc, "params"));
+
+  filterEl.appendChild(pageEl);
+}
+
+void Task::writeImageParams(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {
+  const std::unique_ptr<ImageSettings::PageParams> params(m_imageSettings->getPageParams(pageId));
+  if (!params) {
+    return;
+  }
+
+  QDomElement pageEl(doc.createElement("page"));
+  pageEl.setAttribute("id", numericId);
+  pageEl.appendChild(params->toXml(doc, "image-params"));
+
+  filterEl.appendChild(pageEl);
+}
+
 }  // namespace deskew
+}  // namespace cli

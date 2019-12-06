@@ -3,18 +3,21 @@
 
 
 #include "SelectContentTask.h"
+#include "cli/ProjectWriter.h"
 #include "core/DebugImagesImpl.h"
 #include "core/filters/select_content/ContentBoxFinder.h"
 #include "core/filters/select_content/PageFinder.h"
 #include "core/filters/select_content/PhysSizeCalc.h"
 #include "core/logger/Logger.h"
+#include "foundation/Utils.h"
+#include "foundation/XmlMarshaller.h"
 
-
-namespace select_content {
 namespace cli {
-Task::Task(intrusive_ptr<Settings> settings,
+namespace select_content {
+
+Task::Task(intrusive_ptr<::select_content::Settings> settings,
            const PageId& pageId,
-           intrusive_ptr<page_layout::cli::Task> nextTask,
+           intrusive_ptr<::cli::page_layout::Task> nextTask,
            bool batch,
            bool debug)
     : m_settings(std::move(settings)), m_pageId(pageId), m_nextTask(std::move(nextTask)), m_batchProcessing(batch) {
@@ -31,18 +34,19 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
   Logger::debug() << "Task::process(): Search the content box of image with id " << m_pageId.imageId().page() << " ("
                   << m_pageId.imageId().filePath().toStdString() << ")" << Logger::eol;
 
-  std::unique_ptr<Params> params(m_settings->getPageParams(m_pageId));
-  const Dependencies deps = (params) ? Dependencies(data.xform().resultingPreCropArea(), params->contentDetectionMode(),
-                                                    params->pageDetectionMode(), params->isFineTuningEnabled())
-                                     : Dependencies(data.xform().resultingPreCropArea());
+  std::unique_ptr<::select_content::Params> params(m_settings->getPageParams(m_pageId));
+  const ::select_content::Dependencies deps
+      = (params) ? ::select_content::Dependencies(data.xform().resultingPreCropArea(), params->contentDetectionMode(),
+                                                  params->pageDetectionMode(), params->isFineTuningEnabled())
+                 : ::select_content::Dependencies(data.xform().resultingPreCropArea());
 
-  Params newParams(deps);
+  ::select_content::Params newParams(deps);
   if (params) {
     newParams = *params;
     newParams.setDependencies(deps);
   }
 
-  const PhysSizeCalc physSizeCalc(data.xform());
+  const ::select_content::PhysSizeCalc physSizeCalc(data.xform());
 
   bool needUpdateContentBox = false;
   bool needUpdatePageBox = false;
@@ -53,9 +57,9 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
 
     if (needUpdatePageBox) {
       if (newParams.pageDetectionMode() == MODE_AUTO) {
-        pageRect
-            = PageFinder::findPageBox(status, data, newParams.isFineTuningEnabled(), m_settings->pageDetectionBox(),
-                                      m_settings->pageDetectionTolerance(), m_dbg.get());
+        pageRect = ::select_content::PageFinder::findPageBox(status, data, newParams.isFineTuningEnabled(),
+                                                             m_settings->pageDetectionBox(),
+                                                             m_settings->pageDetectionTolerance(), m_dbg.get());
       } else if (newParams.pageDetectionMode() == MODE_DISABLED) {
         pageRect = data.xform().resultingRect();
       }
@@ -74,7 +78,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
 
     if (needUpdateContentBox) {
       if (newParams.contentDetectionMode() == MODE_AUTO) {
-        contentRect = ContentBoxFinder::findContentBox(status, data, pageRect, m_dbg.get());
+        contentRect = ::select_content::ContentBoxFinder::findContentBox(status, data, pageRect, m_dbg.get());
       } else if (newParams.contentDetectionMode() == MODE_DISABLED) {
         contentRect = pageRect;
       }
@@ -107,5 +111,32 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
   return false;
 }
 
-}  // namespace cli
+QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
+  QDomElement filterEl(doc.createElement("select-content"));
+
+  filterEl.appendChild(XmlMarshaller(doc).sizeF(m_settings->pageDetectionBox(), "page-detection-box"));
+  filterEl.setAttribute("pageDetectionTolerance",
+                        ::foundation::Utils::doubleToString(m_settings->pageDetectionTolerance()));
+
+  writer.enumPages(
+      [&](const PageId& pageId, int numericId) { this->writePageSettings(doc, filterEl, pageId, numericId); });
+
+  return filterEl;
+}
+
+
+void Task::writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {
+  const std::unique_ptr<::select_content::Params> params(m_settings->getPageParams(pageId));
+  if (!params) {
+    return;
+  }
+
+  QDomElement pageEl(doc.createElement("page"));
+  pageEl.setAttribute("id", numericId);
+  pageEl.appendChild(params->toXml(doc, "params"));
+
+  filterEl.appendChild(pageEl);
+}
+
 }  // namespace select_content
+}  // namespace cli

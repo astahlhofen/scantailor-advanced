@@ -25,12 +25,12 @@
 #include "imageproc/Dpm.h"
 #include "imageproc/Grayscale.h"
 
-namespace fix_orientation {
 namespace cli {
+namespace fix_orientation {
 
 LoadFileTask::LoadFileTask(const PageInfo& page,
                            intrusive_ptr<ProjectPages> pages,
-                           intrusive_ptr<fix_orientation::cli::Task> nextTask)
+                           intrusive_ptr<::cli::fix_orientation::Task> nextTask)
     : m_imageId(page.imageId()),
       m_imageMetadata(page.metadata()),
       m_pages(std::move(pages)),
@@ -118,5 +118,5 @@ void LoadFileTask::overrideDpi(QImage& image) const {
   image.setDotsPerMeterY(dpm.vertical());
 }
 
-}  // namespace cli
 }  // namespace fix_orientation
+}  // namespace cli

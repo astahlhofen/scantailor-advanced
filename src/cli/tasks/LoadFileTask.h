@@ -28,8 +28,8 @@
 #include "foundation/ref_countable.h"
 #include "tasks/FixOrientationTask.h"
 
-namespace fix_orientation {
 namespace cli {
+namespace fix_orientation {
 
 class LoadFileTask : public TaskStatus, public ref_countable {
  public:
@@ -41,7 +41,7 @@ class LoadFileTask : public TaskStatus, public ref_countable {
  public:
   LoadFileTask(const PageInfo& page,
                intrusive_ptr<ProjectPages> pages,
-               intrusive_ptr<fix_orientation::cli::Task> nextTask);
+               intrusive_ptr<::cli::fix_orientation::Task> nextTask);
   ~LoadFileTask() override;
 
   // ##############################################################################################
@@ -80,10 +80,10 @@ class LoadFileTask : public TaskStatus, public ref_countable {
   ImageId m_imageId;
   ImageMetadata m_imageMetadata;
   const intrusive_ptr<ProjectPages> m_pages;
-  const intrusive_ptr<fix_orientation::cli::Task> m_nextTask;
+  const intrusive_ptr<::cli::fix_orientation::Task> m_nextTask;
 };
 
-}  // namespace cli
 }  // namespace fix_orientation
+}  // namespace cli
 
 #endif  // SCANTAILOR_CLI_TASKS_LOADFILETASK_H_

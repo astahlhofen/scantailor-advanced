@@ -8,33 +8,42 @@
 #include "core/filters/select_content/Settings.h"
 #include "foundation/TaskStatus.h"
 #include "foundation/intrusive_ptr.h"
-#include "foundation/ref_countable.h"
 #include "imageproc/DebugImages.h"
+#include "tasks/AbstractTask.h"
 #include "tasks/PageLayoutTask.h"
 
-namespace select_content {
 namespace cli {
+namespace select_content {
 
-class Task : public ref_countable {
+class Task : public AbstractTask {
  public:
-  Task(intrusive_ptr<Settings> settings,
+  Task(intrusive_ptr<::select_content::Settings> settings,
        const PageId& pageId,
-       intrusive_ptr<page_layout::cli::Task> nextTask,
+       intrusive_ptr<::cli::page_layout::Task> nextTask,
        bool batch,
        bool debug);
   ~Task() override;
 
   bool process(const TaskStatus& status, const FilterData& data);
 
+  // ##############################################################################################
+  // # AbstractTask implementation
+  // ##############################################################################################
+ public:
+  QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
+
  private:
-  intrusive_ptr<page_layout::cli::Task> m_nextTask;
-  intrusive_ptr<Settings> m_settings;
+  void writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const;
+
+ private:
+  intrusive_ptr<::cli::page_layout::Task> m_nextTask;
+  intrusive_ptr<::select_content::Settings> m_settings;
   std::unique_ptr<DebugImages> m_dbg;
   PageId m_pageId;
   bool m_batchProcessing;
 };
 
-}  // namespace cli
 }  // namespace select_content
+}  // namespace cli
 
 #endif  // SCANTAILOR_CLI_TASKS_SELECTCONTENTTASK_H_

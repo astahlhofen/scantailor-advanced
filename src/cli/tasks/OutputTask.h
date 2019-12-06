@@ -9,14 +9,16 @@
 #include "core/OutputFileNameGenerator.h"
 #include "core/filters/output/Settings.h"
 #include "foundation/TaskStatus.h"
+#include "foundation/intrusive_ptr.h"
 #include "imageproc/DebugImages.h"
+#include "tasks/AbstractTask.h"
 
-namespace output {
 namespace cli {
+namespace output {
 
-class Task : public ref_countable {
+class Task : public AbstractTask {
  public:
-  Task(intrusive_ptr<Settings> settings,
+  Task(intrusive_ptr<::output::Settings> settings,
        const PageId& pageId,
        const OutputFileNameGenerator& outFileNameGen,
        bool batch,
@@ -25,10 +27,19 @@ class Task : public ref_countable {
 
   bool process(const TaskStatus& status, const FilterData& data, const QPolygonF& contentRectPhys);
 
+  // ##############################################################################################
+  // # AbstractTask implementation
+  // ##############################################################################################
+ public:
+  QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
+
+ private:
+  void writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const;
+
  private:
   void deleteMutuallyExclusiveOutputFiles();
 
-  intrusive_ptr<Settings> m_settings;
+  intrusive_ptr<::output::Settings> m_settings;
   std::unique_ptr<DebugImages> m_dbg;
   PageId m_pageId;
   OutputFileNameGenerator m_outFileNameGen;
@@ -36,7 +47,7 @@ class Task : public ref_countable {
   bool m_debug;
 };
 
-}  // namespace cli
 }  // namespace output
+}  // namespace cli
 
 #endif  // SCANTAILOR_CLI_TASKS_OUTPUTTASK_H_

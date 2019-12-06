@@ -1,6 +1,7 @@
 set(appname scantailor-cli)
 
 set(sources
+  tasks/AbstractTask.h
   tasks/DeskewTask.cpp tasks/DeskewTask.h
   tasks/FixOrientationTask.cpp tasks/FixOrientationTask.h
   tasks/LoadFileTask.cpp tasks/LoadFileTask.h
@@ -10,7 +11,9 @@ set(sources
   tasks/SelectContentTask.cpp tasks/SelectContentTask.h
   CmdParser.h
   CmdRunner.cpp CmdRunner.h
-  main.cpp)
+  Debug.h
+  main.cpp
+  ProjectWriter.cpp ProjectWriter.h)
   
 add_executable(${appname} ${sources})
 target_include_directories(${appname} PRIVATE 
