@@ -11,7 +11,7 @@ set(sources
   tasks/SelectContentTask.cpp tasks/SelectContentTask.h
   CmdParser.h
   CmdRunner.cpp CmdRunner.h
-  Debug.h
+  Debug.cpp Debug.h
   main.cpp
   ProjectWriter.cpp ProjectWriter.h)
   

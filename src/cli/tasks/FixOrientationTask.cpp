@@ -34,8 +34,8 @@ bool Task::process(const TaskStatus& status, FilterData data) {
   updateFilterData(data);
 
 
-  logImageSettingsForPage("FixOrientationTask::process(): Image settings after updateFilterData(): ", m_imageSettings,
-                          m_pageId);
+  ::cli::debug::logImageSettingsForPage(
+      "FixOrientationTask::process(): Image settings after updateFilterData(): ", m_imageSettings, m_pageId);
 
   ImageTransformation xform(data.xform());
   xform.setPreRotation(m_settings->getRotationFor(m_imageId));
