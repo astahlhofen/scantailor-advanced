@@ -92,15 +92,6 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
     }
   }
 
-  //  OptionsWidget::UiData uiData;
-  //  uiData.setSizeCalc(physSizeCalc);
-  //  uiData.setContentRect(newParams.contentRect());
-  //  uiData.setPageRect(newParams.pageRect());
-  //  uiData.setDependencies(deps);
-  //  uiData.setContentDetectionMode(newParams.contentDetectionMode());
-  //  uiData.setPageDetectionMode(newParams.pageDetectionMode());
-  //  uiData.setFineTuneCornersEnabled(newParams.isFineTuningEnabled());
-
   m_settings->setPageParams(m_pageId, newParams);
 
   status.throwIfCancelled();

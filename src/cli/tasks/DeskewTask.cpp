@@ -54,18 +54,6 @@ bool Task::process(const TaskStatus& status, FilterData data) {
   std::unique_ptr<::deskew::Params> params(m_settings->getPageParams(m_pageId));
   updateFilterData(status, data, (!params || !deps.matches(params->dependencies())));
 
-  //  if (params) {
-  //    if ((!deps.matches(params->dependencies()) || (params->deskewAngle() != uiData.effectiveDeskewAngle()))
-  //        && (params->mode() == MODE_AUTO)) {
-  //      params.reset();
-  //    } else {
-  //      uiData.setEffectiveDeskewAngle(params->deskewAngle());
-  //      uiData.setMode(params->mode());
-  //
-  //      Params newParams(uiData.effectiveDeskewAngle(), deps, uiData.mode());
-  //      m_settings->setPageParams(m_pageId, newParams);
-  //    }
-  //  }
   double skewAngle = 0;
   if (!params) {
     const QRectF imageArea(data.xform().transformBack().mapRect(data.xform().resultingRect()));
@@ -93,13 +81,6 @@ bool Task::process(const TaskStatus& status, FilterData data) {
       imageproc::SkewFinder skewFinder;
       skewFinder.setResolutionRatio((double) rotatedDpm.horizontal() / rotatedDpm.vertical());
       const imageproc::Skew skew(skewFinder.findSkew(rotatedImage));
-
-      //      if (skew.confidence() >= imageproc::Skew::GOOD_CONFIDENCE) {
-      //        uiData.setEffectiveDeskewAngle(-skew.angle());
-      //      } else {
-      //        uiData.setEffectiveDeskewAngle(0);
-      //      }
-      //      uiData.setMode(MODE_AUTO);
 
       if (skew.confidence() >= imageproc::Skew::GOOD_CONFIDENCE) {
         skewAngle = -skew.angle();
