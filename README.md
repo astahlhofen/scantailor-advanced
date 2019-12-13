@@ -44,6 +44,7 @@ brings new ones and fixes.
     * [Auto adjusting content area](#auto-adjusting-content-area)
     * [Black on white detection](#black-on-white-detection)
     * [Guides](#guides)
+* [CLI (Command Line Interface)](#cli)    
 * [Building](#building)
 
 Description
@@ -386,6 +387,10 @@ has't been moved due to dirty realization. Their functionality is fully covered 
       Hold **`Shift`** pressed to select vertical guides only or **`Ctrl`** for horizontal ones.
       Hold **`Shift+Ctrl`** to attach that to both the nearest vertical and horizontal guides.  
     * Use the **context menu** to enable/disable showing the hard margins rectangle.  
+
+<a name="cli"></a> CLI (Command Line Interface)
+------------------------
+In development...
 
 Building
 ----------
