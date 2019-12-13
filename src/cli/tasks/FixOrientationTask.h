@@ -34,6 +34,8 @@ class Task : public AbstractTask {
  public:
   QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
 
+  QString getName() const override;
+
  private:
   void writeParams(QDomDocument& doc, QDomElement& filterEl, const ImageId& imageId, int numericId) const;
 

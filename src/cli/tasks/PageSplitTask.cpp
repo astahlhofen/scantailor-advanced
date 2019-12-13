@@ -127,7 +127,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("page-split"));
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   filterEl.setAttribute("defaultLayoutType", layoutTypeToString(m_settings->defaultLayoutType()));
 
   writer.enumImages([&](const ImageId& imageId, const int numericId) {
@@ -135,6 +135,10 @@ QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument&
   });
 
   return filterEl;
+}  // namespace page_split
+
+QString Task::getName() const {
+  return "page-split";
 }
 
 void Task::writeImageSettings(QDomDocument& doc, QDomElement& filterEl, const ImageId& imageId, int numericId) const {

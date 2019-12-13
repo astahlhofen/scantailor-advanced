@@ -7,6 +7,7 @@
 #include <QDir>
 #include <sstream>
 #include "core/logger/Logger.h"
+#include "imageproc/Dpi.h"
 
 namespace CLI {
 
@@ -18,6 +19,8 @@ std::istringstream& operator>>(std::istringstream& in, QDir& directory);
 
 namespace cli {
 
+enum ParserResult { Ok, VersionRequested, HelpRequested, Error };
+
 class CLIParser {
  public:
   CLIParser();
@@ -28,11 +31,14 @@ class CLIParser {
   // ##############################################################################################
 
  public:
-  int process(int argc, char** argv);
+  ParserResult process(int argc, char** argv);
 
   const std::vector<QFileInfo>& inputFiles() const { return m_inputFiles; }
   const QDir& outputDir() const { return m_outputDir; }
   bool generateProjectFile() const { return m_generateProjectFile; }
+
+  Dpi customDpi() const { return m_customDpi; }
+  bool customFixDpi() const { return m_customFixDpi; }
 
  private:
   ::CLI::App m_app;
@@ -41,6 +47,9 @@ class CLIParser {
   LogLevel m_logLevel;
   std::vector<QFileInfo> m_inputFiles;
   bool m_generateProjectFile;
+
+  bool m_customFixDpi;
+  Dpi m_customDpi;
 };
 
 }  // namespace cli

@@ -59,8 +59,7 @@ bool Task::process(const TaskStatus& status,
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("page-layout"));
-
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   filterEl.setAttribute("showMiddleRect", m_settings->isShowingMiddleRectEnabled() ? "1" : "0");
 
   if (!m_settings->guides().empty()) {
@@ -75,6 +74,10 @@ QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument&
       [&](const PageId& pageId, int numericId) { this->writePageSettings(doc, filterEl, pageId, numericId); });
 
   return filterEl;
+}
+
+QString Task::getName() const {
+  return "page-layout";
 }
 
 void Task::writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {

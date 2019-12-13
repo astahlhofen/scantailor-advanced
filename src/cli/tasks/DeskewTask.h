@@ -37,6 +37,8 @@ class Task : public AbstractTask {
   // ##############################################################################################
   QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
 
+  QString getName() const override;
+
  private:
   static void cleanup(const TaskStatus& status, imageproc::BinaryImage& img, const Dpi& dpi);
 

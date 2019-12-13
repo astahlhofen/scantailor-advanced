@@ -32,6 +32,8 @@ class Task : public AbstractTask {
  public:
   QDomElement saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const override;
 
+  QString getName() const override;
+
  private:
   void writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const;
 

@@ -66,7 +66,9 @@ bool ProjectWriter::write(const QString& filePath, const std::vector<intrusive_p
   auto it(tasks.begin());
   const auto end(tasks.end());
   for (; it != end; ++it) {
-    filtersEl.appendChild((*it)->saveSettings(*this, doc));
+    // Don't add  multiple filter task with the same name.
+    if (filtersEl.firstChildElement((*it)->getName()).isNull())
+      filtersEl.appendChild((*it)->saveSettings(*this, doc));
   }
 
   QFile file(filePath);
@@ -132,30 +134,31 @@ QDomElement ProjectWriter::processImages(QDomDocument& doc) const {
 QDomElement ProjectWriter::processPages(QDomDocument& doc) const {
   QDomElement pagesEl(doc.createElement("pages"));
 
-  //  const PageId selOpt1(m_selectedPage.get(IMAGE_VIEW));
-  //  const PageId selOpt2(m_selectedPage.get(PAGE_VIEW));
-  //
-  //  PageId pageLeft;
-  //  PageId pageRight;
-  //  if (selOpt2.subPage() == PageId::SINGLE_PAGE) {
-  //    // In case it was split later select first of its pages found
-  //    pageLeft = PageId(selOpt2.imageId(), PageId::LEFT_PAGE);
-  //    pageRight = PageId(selOpt2.imageId(), PageId::RIGHT_PAGE);
-  //  }
-  //
-  //
-  //  for (const PageInfo& page : m_pageSequence) {
-  //    const PageId& pageId = page.id();
-  //    QDomElement pageEl(doc.createElement("page"));
-  //    pageEl.setAttribute("id", this->pageId(pageId));
-  //    pageEl.setAttribute("imageId", imageId(pageId.imageId()));
-  //    pageEl.setAttribute("subPage", pageId.subPageAsString());
-  //    if ((pageId == selOpt1) || (pageId == selOpt2) || (pageId == pageLeft) || (pageId == pageRight)) {
-  //      pageEl.setAttribute("selected", "selected");
-  //      pageLeft = pageRight = PageId();  // if one of these match other shouldn't
-  //    }
-  //    pagesEl.appendChild(pageEl);
-  //  }
+  for (const PageInfo& page : m_pageSequence) {
+    // Image view
+    const PageId selOpt1{page.imageId(), PageId::SINGLE_PAGE};
+    // Page view.
+    const PageId selOpt2 = page.id();
+
+    PageId pageLeft;
+    PageId pageRight;
+    if (selOpt2.subPage() == PageId::SINGLE_PAGE) {
+      // In case it was split later select first of its pages found
+      pageLeft = PageId(selOpt2.imageId(), PageId::LEFT_PAGE);
+      pageRight = PageId(selOpt2.imageId(), PageId::RIGHT_PAGE);
+    }
+
+    const PageId& pageId = page.id();
+    QDomElement pageEl(doc.createElement("page"));
+    pageEl.setAttribute("id", this->pageId(pageId));
+    pageEl.setAttribute("imageId", imageId(pageId.imageId()));
+    pageEl.setAttribute("subPage", pageId.subPageAsString());
+    if ((pageId == selOpt1) || (pageId == selOpt2) || (pageId == pageLeft) || (pageId == pageRight)) {
+      pageEl.setAttribute("selected", "selected");
+      pageLeft = pageRight = PageId();  // if one of these match other shouldn't
+    }
+    pagesEl.appendChild(pageEl);
+  }
 
   return pagesEl;
 }

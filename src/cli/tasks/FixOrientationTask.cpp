@@ -58,13 +58,17 @@ void Task::updateFilterData(FilterData& data) {
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("fix-orientation"));
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   writer.enumImages(
       [&](const ImageId& imageId, const int numericId) { this->writeParams(doc, filterEl, imageId, numericId); });
 
   saveImageSettings(writer, doc, filterEl);
 
   return filterEl;
+}
+
+QString Task::getName() const {
+  return "fix-orientation";
 }
 
 void Task::writeParams(QDomDocument& doc, QDomElement& filterEl, const ImageId& imageId, int numericId) const {

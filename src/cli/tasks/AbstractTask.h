@@ -16,6 +16,7 @@ class AbstractTask : public ref_countable {
   ~AbstractTask() override = default;
 
   virtual QDomElement saveSettings(const ProjectWriter& writer, QDomDocument& doc) const = 0;
+  virtual QString getName() const = 0;
 };
 
 }  // namespace cli

@@ -103,8 +103,7 @@ bool Task::process(const TaskStatus& status, const FilterData& data) {
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("select-content"));
-
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   filterEl.appendChild(XmlMarshaller(doc).sizeF(m_settings->pageDetectionBox(), "page-detection-box"));
   filterEl.setAttribute("pageDetectionTolerance",
                         ::foundation::Utils::doubleToString(m_settings->pageDetectionTolerance()));
@@ -115,6 +114,9 @@ QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument&
   return filterEl;
 }
 
+QString Task::getName() const {
+  return "select-content";
+}
 
 void Task::writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {
   const std::unique_ptr<::select_content::Params> params(m_settings->getPageParams(pageId));

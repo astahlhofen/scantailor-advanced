@@ -389,12 +389,15 @@ void Task::deleteMutuallyExclusiveOutputFiles() {
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("output"));
-
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   writer.enumPages(
       [&](const PageId& pageId, int numericId) { this->writePageSettings(doc, filterEl, pageId, numericId); });
 
   return filterEl;
+}
+
+QString Task::getName() const {
+  return "output";
 }
 
 void Task::writePageSettings(QDomDocument& doc, QDomElement& filterEl, const PageId& pageId, int numericId) const {

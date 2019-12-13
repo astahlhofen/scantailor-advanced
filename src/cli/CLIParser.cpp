@@ -3,6 +3,7 @@
 
 #include "CLIParser.h"
 #include <QDir>
+#include <regex>
 #include "version.h"
 
 using namespace CLI::enums;
@@ -58,30 +59,32 @@ CLIParser::CLIParser()
       m_outputDir{},
       m_logLevel{LogLevel::WARNING},
       m_inputFiles{},
-      m_generateProjectFile{false} {}
+      m_generateProjectFile{false},
+      m_customFixDpi{false},
+      m_customDpi{} {}
 
 CLIParser::~CLIParser() = default;
 
-int CLIParser::process(int argc, char** argv) {
+ParserResult CLIParser::process(int argc, char** argv) {
   auto generalGroup = m_app.add_option_group("general");
 
-  // OUTPUT_DIRECTORY
+  // GENERAL - OUTPUT_DIRECTORY
   generalGroup->add_option("-o,--output-directory", m_outputDir, "The required output directory.")
       ->required()
       ->type_name("[OUTPUT_DIRECTORY]")
       ->check(::cli::ExistsOrCreate);
 
-  generalGroup->add_option("--gp,--generate-project", m_generateProjectFile,
-                           "If this flag is set, a file 'project.ScanTailor' is generate inside the output directory.");
+  generalGroup->add_flag("--gp,--generate-project", m_generateProjectFile,
+                         "If this flag is set, a file 'project.ScanTailor' is generate inside the output directory.");
 
-  // LOG_LEVEL
+  // GENERAL - LOG_LEVEL
   std::vector<std::pair<std::string, LogLevel>> logLevelMapping{
       {"error", LogLevel::ERROR}, {"warning", LogLevel::WARNING}, {"info", LogLevel::INFO}, {"debug", LogLevel::DEBUG}};
   generalGroup->add_option("-l,--log-level", m_logLevel, "Set the log level to use.")
       ->default_val(std::to_string(LogLevel::WARNING))
       ->transform(CLI::CheckedTransformer(logLevelMapping, CLI::ignore_case));
 
-  // VERSION
+  // GENERAL - VERSION
   generalGroup->add_flag_callback(
       "--version",
       [this]() {
@@ -90,7 +93,26 @@ int CLIParser::process(int argc, char** argv) {
       },
       "Show version");
 
-  // INPUT FILES;
+  // GENERAL - AUTO FIX DPI
+  generalGroup->add_option_function<std::string>(
+      "--sid,--set-input-dpi",
+      [this](const std::string& _dpiString) {
+        std::regex dpiRegex{"^([0-9]{1,})([xX]([0-9]{1,}))?$"};
+        std::smatch match;
+        if (!std::regex_match(_dpiString, match, dpiRegex)) {
+          throw CLI::ValidationError("The given dpi string '" + _dpiString + "' is not valid.");
+        }
+
+        int xdpi = std::stoi(match[1].str());
+        int ydpi = (match[3].str().empty()) ? xdpi : std::stoi(match[3].str());
+        m_customFixDpi = true;
+        m_customDpi = Dpi{xdpi, ydpi};
+      },
+      "Force to set the metadata of the input images to the given dpi. The image file itself is not "
+      "changed by scantailor. The DPI specification must be of the form <xdpi>x<ydpi> or <dpi> "
+      "for both x- and y-direction.");
+
+  // GENERAL - INPUT FILES
   generalGroup
       ->add_option_function<std::vector<std::string>>(
           "input_files",
@@ -103,8 +125,22 @@ int CLIParser::process(int argc, char** argv) {
       ->required(true)
       ->check(CLI::ExistingFile);
 
-
-  CLI11_PARSE(m_app, argc, argv);
+  // Parse the arguments.
+  try {
+    m_app.parse((argc), (argv));
+  } catch (const CLI::CallForHelp& e) {
+    m_app.exit(e);
+    return ParserResult::HelpRequested;
+  } catch (const CLI::CallForAllHelp& e) {
+    m_app.exit(e);
+    return ParserResult::HelpRequested;
+  } catch (const CLI::Success& e) {
+    m_app.exit(e);
+    return ParserResult::VersionRequested;
+  } catch (const CLI::ParseError& e) {
+    m_app.exit(e);
+    return ParserResult::Error;
+  }
 
   // Set the log level.
   Logger::instance()->setLogLevel(m_logLevel);
@@ -118,7 +154,7 @@ int CLIParser::process(int argc, char** argv) {
     Logger::debug() << "CLIParser::process():   - " << _file.absoluteFilePath().toStdString() << Logger::eol;
   });
 
-  return 0;
+  return ParserResult::Ok;
 }
 
 }  // namespace cli

@@ -178,14 +178,16 @@ void Task::updateFilterData(const TaskStatus& status, FilterData& data, bool nee
 }
 
 QDomElement Task::saveSettings(const ::cli::ProjectWriter& writer, QDomDocument& doc) const {
-  QDomElement filterEl(doc.createElement("deskew"));
-
+  QDomElement filterEl = QDomElement(doc.createElement(getName()));
   writer.enumPages(
       [&](const PageId& pageId, const int numericId) { this->writeParams(doc, filterEl, pageId, numericId); });
 
   saveImageSettings(writer, doc, filterEl);
-
   return filterEl;
+}
+
+QString Task::getName() const {
+  return "deskew";
 }
 
 void Task::saveImageSettings(const ProjectWriter& writer, QDomDocument& doc, QDomElement& filterEl) const {
