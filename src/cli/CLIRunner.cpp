@@ -1,11 +1,10 @@
 // Copyright (C) 2019  Andreas Stahlhofen <andreas.stahlhofen@gmail.com>
 // Use of this source code is governed by the GNU GPLv3 license that can be found in the LICENSE file.
 
-#include "CmdRunner.h"
+#include "CLIRunner.h"
 #include <algorithm>
 #include <iostream>
 #include <vector>
-#include "CmdParser.h"
 #include "Debug.h"
 #include "cli/ProjectWriter.h"
 #include "core/ImageFileInfo.h"
@@ -24,40 +23,21 @@
 #include "tasks/LoadFileTask.h"
 #include "tasks/OutputTask.h"
 
-CmdRunner::CmdRunner() {}
+namespace cli {
 
-CmdRunner::~CmdRunner() {}
+CLIRunner::CLIRunner() : m_parser{} {}
 
-int CmdRunner::run() {
-  // Initialize the command line parser.
-  QCommandLineParser parser;
-  parser.setApplicationDescription("The scantailor command line interface.");
+CLIRunner::~CLIRunner() {}
 
+int CLIRunner::run(int argc, char** argv) {
   // Initialize the logger.
   Logger::instance()->addMessageWriter(new StandardMessageWriter());
 
-  // Read command line options.
-  CmdOptions options;
-  QString errorMessage;
-  switch (parseCommandLine(parser, &options, &errorMessage)) {
-    case OPTIONS_OK:
-      break;
-    case OPTIONS_ERROR:
-      std::cerr << "ERROR: Failed to parse command line options - " << errorMessage.toStdString() << std::endl;
-      parser.showHelp(1);
-      break;
-    case OPTIONS_VERSION_REQUESTED:
-      std::cerr << QCoreApplication::applicationName().toStdString() << " "
-                << qPrintable(QCoreApplication::applicationVersion()) << std::endl;
-      return 0;
-    case OPTIONS_HELP_REQUESTED:
-      parser.showHelp();
-      return 0;
-  }
+  m_parser.process(argc, argv);
 
   // Convert the parsed QFileInfos into ImageFileInfos.
   std::vector<ImageFileInfo> imageFileInfos;
-  std::for_each(options.inputFiles.begin(), options.inputFiles.end(), [&](const QFileInfo& _fileInfo) {
+  std::for_each(m_parser.inputFiles().begin(), m_parser.inputFiles().end(), [&](const QFileInfo& _fileInfo) {
     std::vector<ImageMetadata> perPageMetadata;
     const ImageMetadataLoader::Status st = ImageMetadataLoader::load(
         _fileInfo.absoluteFilePath(), [&](const ImageMetadata& _metadata) { perPageMetadata.push_back(_metadata); });
@@ -67,19 +47,19 @@ int CmdRunner::run() {
     } else {
       Logger::error() << "ERROR: Failed to load image file '" << _fileInfo.absoluteFilePath().toStdString()
                       << "'. Maybe the specified file is corrupt or no supported image type." << Logger::eol;
-      QCoreApplication::exit(1);
+      std::exit(1);
     }
   });
   std::sort(imageFileInfos.begin(), imageFileInfos.end(), [](const ImageFileInfo& _lhs, const ImageFileInfo& _rhs) {
     return SmartFilenameOrdering()(_lhs.fileInfo(), _rhs.fileInfo());
   });
 
-  ::cli::debug::logImageFileInfos("CmdRunner:run()", imageFileInfos);
+  ::cli::debug::logImageFileInfos("CLIRunner:run()", imageFileInfos);
 
   // Create the project pages.
   auto pages = make_intrusive<ProjectPages>(imageFileInfos, ProjectPages::ONE_PAGE, Qt::LeftToRight);
   PageSequence pageSequence = pages->toPageSequence(PageView::PAGE_VIEW);
-  Logger::debug() << "CmdRunner::run(): Number of pages is " << pageSequence.numPages() << Logger::eol;
+  Logger::debug() << "CLIRunner::run(): Number of pages is " << pageSequence.numPages() << Logger::eol;
 
   auto begin{pageSequence.begin()};
   auto end{pageSequence.end()};
@@ -95,7 +75,7 @@ int CmdRunner::run() {
     const PageInfo& currentPage = *pageIt;
 
     // Output task.
-    auto outputSettings = make_intrusive<output::Settings>();
+    auto outputSettings = make_intrusive<::output::Settings>();
 
     ::output::ColorParams outputColorParams{};
     outputColorParams.setColorMode(::output::ColorMode::COLOR_GRAYSCALE);
@@ -170,7 +150,7 @@ int CmdRunner::run() {
     outputProcessingParams.setBlackOnWhiteSetManually(true);
     outputSettings->setOutputProcessingParams(currentPage.id(), outputProcessingParams);
 
-    const QString outDir = options.outputDirectory.absolutePath();
+    const QString outDir = m_parser.outputDir().absolutePath();
     OutputFileNameGenerator outFileNameGen{make_intrusive<FileNameDisambiguator>(), outDir,
                                            Qt::LayoutDirection::LeftToRight};
     auto outputTask
@@ -230,15 +210,15 @@ int CmdRunner::run() {
     auto loadTask = make_intrusive<::cli::fix_orientation::LoadFileTask>(currentPage, pages, fixOrientationTask);
 
     // Start processing.
-    Logger::debug() << "CmdRunner::run(): Start processing pipeline for page with id " << currentPage.imageId().page()
+    Logger::debug() << "CLIRunner::run(): Start processing pipeline for page with id " << currentPage.imageId().page()
                     << Logger::eol;
     loadTask->process();
   }
 
-  if (options.generateOutputProject) {
-    const QString outDir = options.outputDirectory.absolutePath();
+  if (m_parser.generateProjectFile()) {
+    const QString outDir = m_parser.outputDir().absolutePath();
     const QString projectFilePath = QDir::cleanPath(outDir + "/project.ScanTailor");
-    Logger::debug() << "CmdRunner::run(): Generate output project file '" << projectFilePath.toStdString() << "'"
+    Logger::debug() << "CLIRunner::run(): Generate output project file '" << projectFilePath.toStdString() << "'"
                     << Logger::eol;
     OutputFileNameGenerator outFileNameGen{make_intrusive<FileNameDisambiguator>(), outDir,
                                            Qt::LayoutDirection::LeftToRight};
@@ -248,3 +228,5 @@ int CmdRunner::run() {
 
   return 0;
 }
+
+}  // namespace cli
