@@ -63,7 +63,7 @@ int CLIRunner::run(int argc, char** argv) {
   ::cli::debug::logImageFileInfos("CLIRunner::run()", imageFileInfos);
 
   // Create the project pages.
-  auto pages = make_intrusive<ProjectPages>(imageFileInfos, ProjectPages::ONE_PAGE, Qt::LeftToRight);
+  auto pages = make_intrusive<ProjectPages>(imageFileInfos, ProjectPages::AUTO_PAGES, Qt::LeftToRight);
   PageSequence pageSequence = pages->toPageSequence(PageView::PAGE_VIEW);
   Logger::debug() << "CLIRunner::run(): Number of pages is " << pageSequence.numPages() << Logger::eol;
 
@@ -153,42 +153,14 @@ CLIRunner::TaskVector<::cli::output::Task> CLIRunner::getOutputTasks(const PageS
                                                                      bool isDebug) {
   auto outputSettings = make_intrusive<::output::Settings>();
 
-  ::output::ColorParams outputColorParams{};
-  outputColorParams.setColorMode(::output::ColorMode::COLOR_GRAYSCALE);
+  ::output::ColorParams outputColorParams = m_parser.colorParams();
 
-  ::output::ColorCommonOptions outputColorCommonOptions{};
-  outputColorCommonOptions.setNormalizeIllumination(false);
-  outputColorCommonOptions.setFillMargins(true);
-  outputColorCommonOptions.setFillingColor(::output::FillingColor::FILL_BACKGROUND);
-  outputColorCommonOptions.setFillOffcut(true);
-
-  ::output::ColorCommonOptions::PosterizationOptions outputPosterizationOptions{};
-  outputPosterizationOptions.setEnabled(true);
-  outputPosterizationOptions.setForceBlackAndWhite(true);
-  outputPosterizationOptions.setLevel(6);
-  outputPosterizationOptions.setNormalizationEnabled(true);
-  outputColorCommonOptions.setPosterizationOptions(outputPosterizationOptions);
+  ::output::ColorCommonOptions outputColorCommonOptions = m_parser.colorCommonOptions();
+  outputColorCommonOptions.setPosterizationOptions(m_parser.posterizationOptions());
   outputColorParams.setColorCommonOptions(outputColorCommonOptions);
 
-  ::output::BlackWhiteOptions outputBlackWhiteOptions{};
-  outputBlackWhiteOptions.setMorphologicalSmoothingEnabled(true);
-  outputBlackWhiteOptions.setBinarizationMethod(::output::BinarizationMethod::OTSU);
-  outputBlackWhiteOptions.setNormalizeIllumination(false);
-  outputBlackWhiteOptions.setWolfUpperBound(254);
-  outputBlackWhiteOptions.setWolfLowerBound(1);
-  outputBlackWhiteOptions.setWolfCoef(0.3);
-  outputBlackWhiteOptions.setSavitzkyGolaySmoothingEnabled(true);
-  outputBlackWhiteOptions.setThresholdAdjustment(0);
-  outputBlackWhiteOptions.setSauvolaCoef(0.34);
-  outputBlackWhiteOptions.setWindowSize(200);
-
-  ::output::BlackWhiteOptions::ColorSegmenterOptions outputColorSegmenterOptions;
-  outputColorSegmenterOptions.setGreenThresholdAdjustment(0);
-  outputColorSegmenterOptions.setEnabled(true);
-  outputColorSegmenterOptions.setBlueThresholdAdjustment(0);
-  outputColorSegmenterOptions.setNoiseReduction(7);
-  outputColorSegmenterOptions.setRedThresholdAdjustment(0);
-  outputBlackWhiteOptions.setColorSegmenterOptions(outputColorSegmenterOptions);
+  ::output::BlackWhiteOptions outputBlackWhiteOptions = m_parser.blackWhiteOptions();
+  outputBlackWhiteOptions.setColorSegmenterOptions(m_parser.colorSegmenterOptions());
   outputColorParams.setBlackWhiteOptions(outputBlackWhiteOptions);
 
   ::output::SplittingOptions outputSplittingOptions{};
@@ -211,7 +183,7 @@ CLIRunner::TaskVector<::cli::output::Task> CLIRunner::getOutputTasks(const PageS
   };
 
   ::output::Params outputPageParams{
-      {600, 600},                 // dpi
+      m_parser.outputDpi(),       // dpi
       outputColorParams,          // colorParams
       outputSplittingOptions,     // splittingOptions
       outputPictureShapeOptions,  // pictureShapeOptions

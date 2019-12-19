@@ -24,6 +24,7 @@
 #include "core/DebugImagesImpl.h"
 #include "core/ImageLoader.h"
 #include "core/TiffWriter.h"
+#include "core/filters/output/DespeckleState.h"
 #include "core/filters/output/FillZoneComparator.h"
 #include "core/filters/output/OutputGenerator.h"
 #include "core/filters/output/OutputImageBuilder.h"
@@ -372,6 +373,8 @@ bool Task::process(const TaskStatus& status, const FilterData& data, const QPoly
       m_settings->setOutputParams(m_pageId, outParams);
     }
   }
+
+  const ::output::DespeckleState despeckleState(outImg, specklesImg, params.despeckleLevel(), params.outputDpi());
   return true;
 }
 
