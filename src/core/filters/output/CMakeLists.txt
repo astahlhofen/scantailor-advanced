@@ -1,5 +1,3 @@
-set(CMAKE_AUTOUIC ON)
-
 set(ui_files
     OtsuBinarizationOptionsWidget.ui
     ApplyColorsDialog.ui
@@ -67,8 +65,10 @@ set(sources
     OutputImageWithOriginalBackgroundMask.cpp OutputImageWithOriginalBackgroundMask.h
     OutputImageBuilder.cpp OutputImageBuilder.h ForegroundType.h)
 
-add_library(output STATIC ${sources} ${ui_files})
+qt5_wrap_ui(ui ${ui_files})
+
+add_library(output STATIC ${sources} ${ui})
 target_link_libraries(output PUBLIC core interaction PRIVATE dewarping zones)
-target_include_directories(output PRIVATE "$<TARGET_PROPERTY:TIFF::TIFF,INTERFACE_INCLUDE_DIRECTORIES>")
+target_include_directories(output PRIVATE "$<TARGET_PROPERTY:TIFF::TIFF,INTERFACE_INCLUDE_DIRECTORIES>" "${CMAKE_CURRENT_BINARY_DIR}")
 
 translation_sources(scantailor ${sources} ${ui_files})

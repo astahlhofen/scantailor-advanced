@@ -1,4 +1,3 @@
-set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 set(resource_files
@@ -44,6 +43,8 @@ set(gui_only_ui_files
     StatusBarPanel.ui
     SystemLoadWidget.ui)
 
+qt5_wrap_ui(gui_only_source ${gui_only_ui_files})
+
 set(win32_resource_file "")
 if (WIN32)
   string(REPLACE "/" "\\\\" SCANTAILOR_WIN_DIR_NATIVE "${SCANTAILOR_RESOURCES_DIR}/win32")
@@ -75,7 +76,7 @@ target_link_libraries(
     PRIVATE core ${EXTRA_LIBS})
 target_include_directories(
     scantailor
-    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
     "$<TARGET_PROPERTY:TIFF::TIFF,INTERFACE_INCLUDE_DIRECTORIES>")
 install(TARGETS scantailor RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 

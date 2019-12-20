@@ -1,5 +1,3 @@
-set(CMAKE_AUTOUIC ON)
-
 set(ui_files
     SplitModeDialog.ui
     OptionsWidget.ui)
@@ -24,7 +22,10 @@ set(sources
     OrderBySplitTypeProvider.cpp OrderBySplitTypeProvider.h
     PageLayoutAdapter.cpp PageLayoutAdapter.h)
 
+qt5_wrap_ui(sources ${ui_files})
+
 add_library(page_split STATIC ${sources} ${ui_files})
 target_link_libraries(page_split PUBLIC core)
+target_include_directories(page_split PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 translation_sources(scantailor ${sources} ${ui_files})
